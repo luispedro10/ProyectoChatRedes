@@ -8,6 +8,7 @@ from slixmpp.xmlstream.stanzabase import ET, ElementBase
 import base64, time
 from getpass import getpass
 from argparse import ArgumentParser
+from optparse import OptionParser
 import threading
 
 #Referencias
@@ -31,16 +32,17 @@ class Registrar(slixmpp.ClientXMPP):
     async def start(self, event):
         self.send_presence()
         await self.get_roster()
+        #Solo nos interesa regustrarnos, nos podemos desconectar
         self.disconnect()
 
     async def register(self, iq):
-        response = self.Iq()
-        response['type'] = 'set'
-        response['register']['username'] = self.boundjid.user
-        response['register']['password'] = self.password
+        resp = self.Iq()
+        resp['type'] = 'set'
+        resp['register']['username'] = self.boundjid.user
+        resp['register']['password'] = self.password
 
         try:
-            await response.send()
+            await resp.send()
             logging.info("Se creo la cuenta", self.boundjid,"\n")
             
         except IqError as e:
@@ -394,13 +396,14 @@ while (op != "3"):
           usuario = input("Ingrese nuevo usuario [Debe ser e.g. pepito@alumchat.fun]: ")
           contra = getpass("Ingrese contraseña: ")
           xmpp = Registrar(usuario, contra)
-          xmpp.register_plugin('xep_0030') 
-          xmpp.register_plugin('xep_0004') 
-          xmpp.register_plugin('xep_0066') 
-          xmpp.register_plugin('xep_0077')
+          xmpp.register_plugin('xep_0030') # Service Discovery
+          xmpp.register_plugin('xep_0004') # Data forms
+          xmpp.register_plugin('xep_0066') # Out-of-band Data
+          xmpp.register_plugin('xep_0077') # In-band Registration
           xmpp['xep_0077'].force_registration = True 
           xmpp.connect()
           xmpp.process(forever=False)
+          connected = True
           print("Registro Completado\n")
      else:
           print("Ingrese un numero valido")
