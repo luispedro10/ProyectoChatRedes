@@ -10,11 +10,18 @@ from getpass import getpass
 from argparse import ArgumentParser
 import threading
 
+#Referencias
+#https://github.com/fritzy/SleekXMPP
+#https://github.com/poezio/slixmpp/
+
+
+#Not Implemented Error
 if sys.platform == 'win32' and sys.version_info >= (3, 8):
      asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
-#Registrar usuario
+# Referencia 
+#https://github.com/poezio/slixmpp/blob/master/examples/register_account.py
 class Registrar(slixmpp.ClientXMPP):
     def __init__(self, jid, password):
         slixmpp.ClientXMPP.__init__(self, jid, password)
@@ -77,6 +84,7 @@ class Eliminar(slixmpp.ClientXMPP):
 
 
 #Mensajeria
+#Referencia https://github.com/poezio/slixmpp/blob/master/examples/send_client.py
 class Mensaje(slixmpp.ClientXMPP):
      def __init__(self, jid, password, recipient, message):
           slixmpp.ClientXMPP.__init__(self, jid, password)
@@ -101,102 +109,143 @@ class Mensaje(slixmpp.ClientXMPP):
                message = input("Mensaje: ")
                self.send_message(mto=self.recipient,mbody=message)
 
-#Lista (Roster)
-class Roster(slixmpp.ClientXMPP):
-    def __init__(self, jid, password, user=None, show=True, message=""):
+#Mostrar Usuarios
+# Referencia https://github.com/poezio/slixmpp/blob/7ddcc3428fbc48814da301ce7cba9b1f855a0fa9/examples/roster_browser.py
+class ShowUsers(slixmpp.ClientXMPP):
+    def __init__(self, jid, password):
         slixmpp.ClientXMPP.__init__(self, jid, password)
         self.add_event_handler("session_start", self.start)
-        self.presences = threading.Event()
-        self.contacts = []
-        self.user = user
-        self.show = show
-        self.message = message
+        self.add_event_handler("changed_status", self.wait_for_presences)
+        self.received = set()
+        self.presences_received = asyncio.Event()
 
     async def start(self, event):
-        self.send_presence()
-        await self.get_roster()
-
-        contactos = []
         try:
-            self.get_roster()
-            
-        except IqError as e:
-            print("Error ", e)
-            
+            await self.get_roster()
+        except IqError as err:
+            print('Error: %s' % err.iq['error']['condition'])
         except IqTimeout:
-            print("Se perdio la conexion")
-        
-        self.presences.wait(3)
+            print('Error: Request timed out')
+        self.send_presence()
 
 
-        rosters = self.client_roster.groups()
-        for group in rosters:
-            for user in rosters[group]:
-                status = show = answer = priority = ''
-                self.contacts.append(user)
-                subs = self.client_roster[user]['subscription']
-                conexions = self.client_roster.presence(user)
-                username = self.client_roster[user]['name'] 
-                for answer, pres in conexions.items():
+        print('Waiting for presence updates...\n')
+        await asyncio.sleep(10)
+
+        print('Roster for %s' % self.boundjid.bare)
+        groups = self.client_roster.groups()
+        for group in groups:
+            print('\n%s' % group)
+            print('-' * 72)
+            for jid in groups[group]:
+                sub = self.client_roster[jid]['subscription']
+                name = self.client_roster[jid]['name']
+                if self.client_roster[jid]['name']:
+                    print(' %s (%s) [%s]' % (name, jid, sub))
+                else:
+                    print(' %s [%s]' % (jid, sub))
+
+                
+                connections = self.client_roster.presence(jid)
+                for res, pres in connections.items():
+                    show = 'available'
                     if pres['show']:
                         show = pres['show']
+                    print('   - %s (%s)' % (res, show))
                     if pres['status']:
-                        status = pres['status']
-                    if pres['priority']:
-                        status = pres['priority']
-
-
-                contactos.append([
-                    user,
-                    subs,
-                    status,
-                    username,
-                    priority
-                ])
-                self.contacts = contactos
-
-        if(self.show):
-            if(not self.user):
-                if len(contactos)==0:
-                    print('No hay nadie conectado')
-                else:
-                    print('Usuarios: \n')
-                for contact in contactos:
-                    print('\tUsuario:' , contact[0] , '\t\tEstatus:' , contact[2])
-            else:
-                print('\n\n')
-                for contact in contactos:
-                    if(contact[0]==self .user):
-                        print('\tUsuario:' , contact[0] , '\n\tEstatus:' , contact[2] , '\n\tNombre:' , contact[3])
-        else:
-            for JID in self.contacts:
-                self.notification_(JID, self.message, 'active')
+                        print('       %s' % pres['status'])
 
         self.disconnect()
 
-    def notification_(self, to, body, my_type):
 
-        message = self.Message()
-        message['to'] = to
-        message['type'] = 'chat'
-        message['body'] = body
+    
+    def wait_for_presences(self, pres):
+        self.received.add(pres['from'].bare)
+        if len(self.received) >= len(self.client_roster.keys()):
+            self.presences_received.set()
+        else:
+            self.presences_received.clear()
 
-        if (my_type == 'active'):
-            stanza = ET.fromstring("<active xmlns='http://jabber.org/protocol/chatstates'/>")
-        elif (my_type == 'composing'):
-            stanza = ET.fromstring("<composing xmlns='http://jabber.org/protocol/chatstates'/>")
-        elif (my_type == 'inactive'):
-            stanza = ET.fromstring("<inactive xmlns='http://jabber.org/protocol/chatstates'/>")
-        message.append(stanza)
 
+
+
+#Mostrar detalles de contacto de un usuario
+class UserInfo(slixmpp.ClientXMPP):
+    def __init__(self, jid, password):
+        slixmpp.ClientXMPP.__init__(self, jid, password)
+        self.add_event_handler("session_start", self.start)
+        self.add_event_handler("changed_status", self.wait_for_presences)
+        self.received = set()
+        self.presences_received = asyncio.Event()
+
+    async def start(self, event):
         try:
-            message.send()
-        except IqError as e:
-            print("Error", e)
+            await self.get_roster()
+            
+        except IqError as err:
+            print('Error: %s' % err.iq['error']['condition'])
+            
         except IqTimeout:
-            print("Se perdio la conexion")
-   
+            print('Error: Request timed out')
+        self.send_presence()
 
+        jid_user=input('User jid: ')
+        print('Waiting for presence updates...\n')
+        await asyncio.sleep(10)
+
+       
+        groups = self.client_roster.groups()
+        for group in groups:
+            print('\n%s' % group)
+            print('-' * 72)
+            for jid in groups[group]:
+                sub = self.client_roster[jid]['subscription']
+                name = self.client_roster[jid]['name']
+                if self.client_roster[jid]['name'] and jid==jid_user:
+                    print(' %s (%s) [%s]' % (name, jid, sub))
+                    connections = self.client_roster.presence(jid_user)
+                    for res, pres in connections.items():
+                        show = 'available'
+                        if pres['show']:
+                            show = pres['show']
+                        print('   - %s (%s)' % (res, show))
+                        if pres['status']:
+                            print('       %s' % pres['status'])
+                
+                elif self.client_roster[jid]['name']==False and jid==jid_user:
+                    print(' %s [%s]' % (jid, sub))
+                    connections = self.client_roster.presence(jid_user)
+                    for res, pres in connections.items():
+                        show = 'available'
+                        if pres['show']:
+                            show = pres['show']
+                        print('   - %s (%s)' % (res, show))
+                        if pres['status']:
+                            print('       %s' % pres['status'])
+        self.disconnect()
+
+    def wait_for_presences(self, pres):
+        self.received.add(pres['from'].bare)
+        if len(self.received) >= len(self.client_roster.keys()):
+            self.presences_received.set()
+        else:
+            self.presences_received.clear()
+   
+   
+#Cambiar Presencia
+class Presence(slixmpp.ClientXMPP):
+    def __init__(self, jid,password,option,message):
+        slixmpp.ClientXMPP.__init__(self,jid,password)
+        self.option=option
+        self.message=message
+        self.add_event_handler("session_start", self.start)
+
+    async def start(self,event):
+        self.send_presence(pshow=self.option,pstatus=self.message)
+        await asyncio.sleep(10)
+        self.get_roster()
+        self.disconnect()
+          
           
 #Agregar contactos
 class Agregar(slixmpp.ClientXMPP):
@@ -217,6 +266,7 @@ class Agregar(slixmpp.ClientXMPP):
 
         
 #Chat grupal
+#Referencia https://github.com/poezio/slixmpp/blob/master/examples/muc.py
 class GrupoChat(slixmpp.ClientXMPP):
 
     def __init__(self, jid, password, room, nick):
@@ -243,37 +293,32 @@ class GrupoChat(slixmpp.ClientXMPP):
     
 #Enviar recibir archivos 
 class Archivos(slixmpp.ClientXMPP):
-
     def __init__(self, jid, password, receiver, filename):
         slixmpp.ClientXMPP.__init__(self, jid, password)
         self.receiver = receiver
-        self.file = open(filename, 'rb')
+        self.file = filename
         self.add_event_handler("session_start", self.start)
 
     async def start(self, event):
+        with open (self.file,'rb') as img:
+            file_=base64.b64encode(img.read()).decode('utf-8')
+            self.disconnect()
         try:
-            proxy = await self['xep_0065'].handshake(self.receiver)
-            while True:
-                data = self.file.read(1048576)
-                if not data:
-                    break
-                await proxy.write(data)
-
-            proxy.transport.write_eof()
-        except (IqTimeout) as e:
-            print('Se perdio la conexion', e)
-        else:
-            print('Archivo enviado!')
-        finally:
-            self.file.close()
+            self.send_message(mto=self.receiver, mbody=file_, mtype='chat')
+            print('Sent file ')
+            self.disconnect()
+        except:
+            print('Error sending file')
             self.disconnect()        
       
 
 
 #Notificaciones      
 class Notificacion(slixmpp.ClientXMPP):
+
     def __init__(self, jid, password, user, message, type_):
         slixmpp.ClientXMPP.__init__(self, jid, password)
+
         self.add_event_handler("session_start", self.start)
         self.add_event_handler("message", self.message)
         self.message = message
@@ -281,6 +326,7 @@ class Notificacion(slixmpp.ClientXMPP):
         self.type_ = type_
 
     async def start(self, event):
+        
         self.send_presence()
         await self.get_roster()
 
@@ -305,14 +351,16 @@ class Notificacion(slixmpp.ClientXMPP):
         try:
             message.send()
         except IqError as e:
-            print("Error ", e)
+            print("Error", e)
         except IqTimeout:
-            print("Se perdio la conexion'")
+            print("Timeout")
 
     def message(self, msg):
         recipient = msg['from']
         body = msg['body']
         print(str(recipient) +  ": " + str(body))
+
+
 
 
 #MAIN
@@ -342,13 +390,14 @@ while (op != "3"):
     
     
      elif(op == "2"):
-          usuario = input("Ingrese nuevo usuario: ")
+          usuario = input("Ingrese nuevo usuario [Debe ser e.g. pepito@alumchat.fun]: ")
           contra = getpass("Ingrese contraseña: ")
           xmpp = Registrar(usuario, contra)
           xmpp.register_plugin('xep_0030') 
           xmpp.register_plugin('xep_0004') 
           xmpp.register_plugin('xep_0066') 
-          xmpp.register_plugin('xep_0077') 
+          xmpp.register_plugin('xep_0077')
+          xmpp['xep_0077'].force_registration = True 
           xmpp.connect()
           xmpp.process(forever=False)
           print("Registro Completado\n")
@@ -374,7 +423,7 @@ while (op != "3"):
      
      while(op2 != "10"):
           if(op2 =="1"):
-               xmpp = Roster(usuario, contra)
+               xmpp = ShowUsers(usuario, contra)
                xmpp.register_plugin('xep_0030') 
                xmpp.register_plugin('xep_0199') 
                xmpp.register_plugin('xep_0045')
@@ -397,7 +446,7 @@ while (op != "3"):
           
           elif(op2 == "3"):
                contacto = input("Escriba el Usuario del contacto: ") 
-               xmpp = Roster(usuario, contra, contacto)
+               xmpp = UserInfo(usuario, contra, contacto)
                xmpp.register_plugin('xep_0030') 
                xmpp.register_plugin('xep_0199') 
                xmpp.register_plugin('xep_0045') 
@@ -441,7 +490,7 @@ while (op != "3"):
           
           elif(op2 == "6"):
                msg = input("Ingrese su mensaje de presencia: ") 
-               xmpp = Roster(usuario, contra, show=False, message=msg)
+               xmpp = Presence(usuario, contra, show=False, message=msg)
                xmpp.register_plugin('xep_0030') 
                xmpp.register_plugin('xep_0199')
                xmpp.register_plugin('xep_0045') 
