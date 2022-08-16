@@ -22,6 +22,7 @@ if sys.platform == 'win32' and sys.version_info >= (3, 8):
 
 
 # Referencia 
+#Registrar
 #https://github.com/poezio/slixmpp/blob/master/examples/register_account.py
 class Registrar(slixmpp.ClientXMPP):
     def __init__(self, jid, password):
@@ -547,6 +548,39 @@ while (op != "3"):
 
           else:
                print("Ingrese un numero valido")
+               
+          print("")
+          print("-----------------------------------------------")
+          print("Presione 1 para mostrar contactos")
+          print("Presione 2 para agregar contactos")
+          print("Presione 3 para mostrar detalles de un contacto")
+          print("Presione 4 para entrar a un chat 1 a 1")
+          print("Presione 5 para entrar a un chat grupal")
+          print("Presione 6 para cambiar mensaje de presencia")
+          print("Presione 7 para enviar y recibir archivos")
+          print("Presione 8 para notificaciones")
+          print("Presione 9 para eliminar cuenta")
+          print("Presione 10 para cerrar sesion")
+          print("-----------------------------------------------")
+          print("")
+          
+
+          op2  = input("")
+          
+     print("")
+     print("======================================================")
+     print("BIENVENIDO AL CHAT")
+     print("PRESIONE 1 PARA INGRESAR EN EL SERVIDOR DE ALUMCHAT")
+     print("PRESIONE 2 PARA REGISTRARSE EN EL SERVIDOR DE ALUMCHAT")
+     print("PRESIONE 3 PARA SALIR")
+     print("")
+     op = input("Opcion: ")
+     print("======================================================")
+     print("")
+     print("")
+     print("")
+     
+        
 
 
 print("adios")
