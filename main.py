@@ -193,7 +193,7 @@ class UserInfo(slixmpp.ClientXMPP):
             print('Error: Request timed out')
         self.send_presence()
 
-        jid_user=input('User jid: ')
+        jid_user=input('Ingrese el correo de la persona: ')
         print('Waiting for presence updates...\n')
         await asyncio.sleep(10)
 
@@ -235,7 +235,8 @@ class UserInfo(slixmpp.ClientXMPP):
         else:
             self.presences_received.clear()
    
-   
+            
+              
 #Cambiar Presencia
 class Presence(slixmpp.ClientXMPP):
     def __init__(self, jid,password,option,message):
@@ -449,15 +450,14 @@ while (op != "3"):
 
           
           
-          elif(op2 == "3"):
-               contacto = input("Escriba el Usuario del contacto: ") 
-               xmpp = UserInfo(usuario, contra, contacto)
-               xmpp.register_plugin('xep_0030') 
-               xmpp.register_plugin('xep_0199') 
-               xmpp.register_plugin('xep_0045') 
-               xmpp.register_plugin('xep_0096') 
-               xmpp.connect()
-               xmpp.process(forever=False)
+          elif(op2 == "3"):  
+            xmpp = UserInfo(usuario, contra)
+            xmpp.register_plugin('xep_0030') # Service Discovery
+            xmpp.register_plugin('xep_0199') # XMPP Ping
+            xmpp.register_plugin('xep_0045') # Mulit-User Chat (MUC)
+            xmpp.register_plugin('xep_0096') # Jabber Search
+            xmpp.connect()
+            xmpp.process(forever=False)
 
           
           
@@ -494,14 +494,12 @@ while (op != "3"):
                     
           
           elif(op2 == "6"):
-               msg = input("Ingrese su mensaje de presencia: ") 
-               xmpp = Presence(usuario, contra, show=False, message=msg)
-               xmpp.register_plugin('xep_0030') # Service Discovery
-               xmpp.register_plugin('xep_0199') # XMPP Ping
-               xmpp.register_plugin('xep_0045') # Mulit-User Chat (MUC)
-               xmpp.register_plugin('xep_0096') # Jabber Search
-               xmpp.connect()
-               xmpp.process(forever=False)
+              presence=input('Ingrese Estatus de Presencia: ')
+              message=input('Ingrese Mensaje de Presencia: ')
+              xmpp=Presence(usuario,contra,presence,message)
+              xmpp.connect()
+              xmpp.process(forever=False)
+               
                
           
           elif(op2 == "7"):
@@ -567,18 +565,18 @@ while (op != "3"):
 
           op2  = input("")
           
-     print("")
-     print("======================================================")
-     print("BIENVENIDO AL CHAT")
-     print("PRESIONE 1 PARA INGRESAR EN EL SERVIDOR DE ALUMCHAT")
-     print("PRESIONE 2 PARA REGISTRARSE EN EL SERVIDOR DE ALUMCHAT")
-     print("PRESIONE 3 PARA SALIR")
-     print("")
-     op = input("Opcion: ")
-     print("======================================================")
+     print("Implementacion XMPP")
+     print("----------------------------------")
      print("")
      print("")
+     print("1. Iniciar Sesión")
+     print("2. Registrarse")
+     print("3.Salir")
      print("")
+     print("")
+     op = input("Escoja una opcion!: ")
+     print("----------------------------------")
+     print("")   
      
         
 
