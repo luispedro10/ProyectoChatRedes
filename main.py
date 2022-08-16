@@ -53,6 +53,7 @@ class Registrar(slixmpp.ClientXMPP):
 
 
 #ELIMINAR usuario 
+# https://github.com/fritzy/SleekXMPP/blob/cc1d470397de768ffcc41d2ed5ac3118d19f09f5/sleekxmpp/plugins/xep_0077/register.py
 class Eliminar(slixmpp.ClientXMPP):
     def __init__(self, jid,password):
         slixmpp.ClientXMPP.__init__(self,jid,password)
@@ -424,10 +425,10 @@ while (op != "3"):
      while(op2 != "10"):
           if(op2 =="1"):
                xmpp = ShowUsers(usuario, contra)
-               xmpp.register_plugin('xep_0030') 
-               xmpp.register_plugin('xep_0199') 
-               xmpp.register_plugin('xep_0045')
-               xmpp.register_plugin('xep_0096') 
+               xmpp.register_plugin('xep_0030') # Service Discovery
+               xmpp.register_plugin('xep_0199') # Data Forms
+               xmpp.register_plugin('xep_0045') # Band Data
+               xmpp.register_plugin('xep_0096') # Band Registration
                xmpp.connect()
                xmpp.process(forever=False)
           
@@ -491,10 +492,10 @@ while (op != "3"):
           elif(op2 == "6"):
                msg = input("Ingrese su mensaje de presencia: ") 
                xmpp = Presence(usuario, contra, show=False, message=msg)
-               xmpp.register_plugin('xep_0030') 
-               xmpp.register_plugin('xep_0199')
-               xmpp.register_plugin('xep_0045') 
-               xmpp.register_plugin('xep_0096')
+               xmpp.register_plugin('xep_0030') # Service Discovery
+               xmpp.register_plugin('xep_0199') # XMPP Ping
+               xmpp.register_plugin('xep_0045') # Mulit-User Chat (MUC)
+               xmpp.register_plugin('xep_0096') # Jabber Search
                xmpp.connect()
                xmpp.process(forever=False)
                
