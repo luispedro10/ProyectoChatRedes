@@ -19,3 +19,8 @@ debe de soportar como mínimo las siguientes características:
 - Definir mensaje de presencia
 - Enviar/recibir notificaciones
 - Enviar/recibir archivos
+
+
+### Para Correrlo, simplemente ejecutar el main y poner su correo y su contraseña
+
+### pip install slixmpp, pip install asyncio, pip install logging, pop install getpass
