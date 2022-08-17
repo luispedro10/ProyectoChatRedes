@@ -2,12 +2,15 @@
 
 El proyecto consiste en implementar un cliente que soporte el protocolo XMPP. A partir de ello
 debe de soportar como mínimo las siguientes características:
-Administración de cuenta (25% del funcionamiento)
+
+## Administración de cuenta (25% del funcionamiento)
 - Registrar una nueva cuenta en el servidor
 - Iniciar sesión con una cuenta
 - Cerrar sesión con una cuenta
 - Eliminar la cuenta del servidor
-Comunicación (75% del funcionamiento)
+
+
+## Comunicación (75% del funcionamiento)
 - Mostrar todos los usuarios/contactos y su estado
 - Agregar un usuario a los contactos
 - Mostrar detalles de contacto de un usuario
